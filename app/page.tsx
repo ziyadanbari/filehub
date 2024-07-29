@@ -1,113 +1,190 @@
-import Image from "next/image";
+"use client";
+import { Alert, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import axios from "axios";
+import {
+  AlertCircle,
+  Clipboard,
+  File,
+  FilePlus2,
+  UploadCloud,
+  X,
+} from "lucide-react";
+import React, { useRef, useState } from "react";
 
-export default function Home() {
+const FileUploadComponent = () => {
+  const [files, setFiles] = useState<File[]>([]);
+  const [progress, setProgress] = useState<number>(50);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [password, setPassword] = useState("");
+  const [generatedLink, setGeneratedLink] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGeneratedLink("");
+    setError("");
+    const newFiles = e.target.files ? Array.from(e.target.files) : [];
+    let error = false;
+    newFiles.forEach((file) => {
+      if (files.some((f) => f.name === file.name)) {
+        setError(`File ${file.name} already exists.`);
+        error = true;
+      } else if (file.size > 1 * 1024 * 1024 * 1024) {
+        // 1GB size check
+        setError(`File ${file.name} exceeds the 1GB limit.`);
+        error = true;
+      }
+    });
+
+    if (error) return;
+    setFiles((prevFiles) => [...prevFiles, ...newFiles]);
+    e.target.value = "";
+  };
+
+  const saveInClipBoard = async () => {
+    if (!generatedLink) return;
+    await navigator.clipboard.writeText(generatedLink);
+    alert("Link copied to clipboard");
+  };
+
+  const submit = async () => {
+    try {
+      setGeneratedLink("");
+      setIsUploading(true);
+      setProgress(0);
+      const formData = new FormData();
+      if (password) formData.append("password", password);
+      files.forEach((file, i) => {
+        formData.append(`file[${i}]`, file);
+      });
+      const response = await axios.post(
+        "http://localhost:8000/api/uploadfiles",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          onUploadProgress: (progressEvent) => {
+            const { loaded, total } = progressEvent;
+            const percentCompleted = Math.round(
+              (loaded * 100) / (total as number)
+            );
+            setProgress(percentCompleted);
+          },
+        }
+      );
+      if (response.data.link) {
+        setGeneratedLink(response.data.link as string);
+        setFiles([]);
+        setPassword("");
+      }
+    } catch (error) {
+      console.error("Error uploading files", error);
+    } finally {
+      setIsUploading(false);
+      setProgress(0);
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div className="w-full h-full px-5 flex items-center justify-center my-10">
+      <div className="sm:w-[600px] w-full flex items-center justify-center flex-col gap-4 ">
+        <div className="text-4xl font-semibold text-center">
+          Share your files with your friends
         </div>
-      </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+        <Alert className={!error ? "hidden" : ""} variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{error}</AlertTitle>
+        </Alert>
+        <input
+          type="file"
+          multiple
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          hidden
         />
+        <div
+          className="w-[200px]"
+          onClick={() => {
+            if (fileInputRef.current) fileInputRef.current.click();
+          }}>
+          <Button
+            className="w-full flex items-center justify-center gap-2 font-semibold"
+            disabled={isUploading}>
+            <FilePlus2 />
+            Add file
+          </Button>
+        </div>
+        <div
+          className={`overflow-x-hidden overflow-y-auto p-3 sm:w-[600px] w-full max-h-[300px] rounded-md bg-slate-900 flex-col gap-2 ${
+            files.length ? "flex" : "hidden"
+          }`}>
+          {files.map((file, i) => (
+            <div
+              className="w-full h-[40px] bg-slate-800 flex justify-between items-center rounded-md px-5 py-2"
+              key={i}>
+              <div className="flex items-center gap-2 flex-1 w-[40%]">
+                <File />
+                <div className="w-[40%] overflow-hidden text-ellipsis whitespace-nowrap">
+                  {file.name}
+                </div>
+              </div>
+              <Button
+                className="cursor-pointer"
+                disabled={isUploading}
+                size="icon"
+                variant="ghost"
+                onClick={() => {
+                  setFiles(files.filter((f) => f.name !== file.name));
+                }}>
+                <X />
+              </Button>
+            </div>
+          ))}
+        </div>
+        {files.length ? (
+          <>
+            <Input
+              placeholder="Set a password (optional)"
+              onChange={(e) => setPassword(e.target.value)}
+              value={password}
+            />
+            <div className="w-[200px]">
+              <Button
+                disabled={isUploading || !files.length}
+                className="w-full flex items-center justify-center gap-2 font-semibold"
+                onClick={submit}
+                style={{
+                  background: isUploading
+                    ? `linear-gradient(to right, rgb(22 163 74) ${progress}%, white ${progress}%)`
+                    : "",
+                }}>
+                <UploadCloud />
+                {isUploading ? `${progress}%` : "Upload"}
+              </Button>
+            </div>
+          </>
+        ) : null}
+        {generatedLink ? (
+          <div className="max-w-[90%] flex flex-col items-center gap-3">
+            <div className="text-lg font-semibold">Generated link</div>
+            <div className="bg-gray-800 p-2 rounded-md flex items-center gap-2 w-full">
+              <div className="flex-1 overflow-hidden text-ellipsis">
+                <div className="w-[80%] overflow-hidden text-ellipsis whitespace-nowrap">
+                  {generatedLink}
+                </div>
+              </div>
+              <div className="cursor-pointer" onClick={saveInClipBoard}>
+                <Clipboard />
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </div>
   );
-}
+};
+
+export default FileUploadComponent;
