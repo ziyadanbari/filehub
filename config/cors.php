@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3000', 'https://filehub-navy.vercel.apps'],
+    'allowed_origins' => ['http://localhost:3000', 'https://filehub-navy.vercel.app'],
 
     'allowed_origins_patterns' => [],
 
