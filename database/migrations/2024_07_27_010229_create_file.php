@@ -12,11 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('file', function (Blueprint $table) {
-            $table->id()->primary()->autoIncrement();
+            $table->id();
             $table->string('file_path')->unique();
-            $table->uuid("files_group_id")->nullable();
+            $table->foreignUuid("files_group_id")->references("id")->on("files")->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamps();
-            $table->foreign('files_group_id')->references("id")->on("files")->cascadeOnDelete()->cascadeOnUpdate();
         });
     }
 
