@@ -21,8 +21,8 @@ console_command = 'php /var/www/html/artisan tinker'
   SESSION_SECURE_COOKIE = 'true'
   DB_CONNECTION="sqlite"
   DB_DATABASE="/var/www/html/storage/database/database.sqlite"
-  APP_URL=https://filehub.fly.io
-  CLIENT_APP_URL=http://localhost:3000
+  APP_URL="https://filehub.fly.dev"
+  CLIENT_APP_URL="https://filehub-navy.vercel.app"
 
 [http_service]
   internal_port = 8080
