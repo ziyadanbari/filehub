@@ -29,11 +29,11 @@ const DownloadFiles = () => {
       try {
         if (downloaded) return;
         const response = await axios.post(
-          `http://localhost:8000/api/securitycheck/${fileUuid}`
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/securitycheck/${fileUuid}`
         );
         setIsPasswordNeeded(false);
         downloadFile(
-          `http://localhost:8000/api/downloadfiles/${fileUuid}?password=${password}`
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/downloadfiles/${fileUuid}?password=${password}`
         );
       } catch (error) {
         console.log(error);
@@ -59,11 +59,11 @@ const DownloadFiles = () => {
       setIsSubmitting(true);
       setError("");
       const response = await axios.post(
-        `http://localhost:8000/api/securitycheck/${fileUuid}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/securitycheck/${fileUuid}`,
         { password }
       );
       downloadFile(
-        `http://localhost:8000/api/downloadfiles/${fileUuid}?password=${password}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/downloadfiles/${fileUuid}?password=${password}`
       );
     } catch (error) {
       if (error instanceof AxiosError && error?.response?.status === 403) {

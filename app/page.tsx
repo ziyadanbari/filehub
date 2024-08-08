@@ -2,7 +2,7 @@
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import {
   AlertCircle,
   Clipboard,
@@ -27,17 +27,21 @@ const FileUploadComponent = () => {
     setError("");
     const newFiles = e.target.files ? Array.from(e.target.files) : [];
     let error = false;
+    let filesSize = 0;
     newFiles.forEach((file) => {
       if (files.some((f) => f.name === file.name)) {
         setError(`File ${file.name} already exists.`);
         error = true;
       } else if (file.size > 1 * 1024 * 1024 * 1024) {
-        // 1GB size check
         setError(`File ${file.name} exceeds the 1GB limit.`);
         error = true;
       }
+      filesSize += file.size;
     });
-
+    if (filesSize > 1 * 1024 * 1024 * 1024) {
+      setError(`Files uploaded exceed the 1GB limit.`);
+      error = true;
+    }
     if (error) return;
     setFiles((prevFiles) => [...prevFiles, ...newFiles]);
     e.target.value = "";
@@ -60,7 +64,7 @@ const FileUploadComponent = () => {
         formData.append(`file[${i}]`, file);
       });
       const response = await axios.post(
-        "http://localhost:8000/api/uploadfiles",
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/uploadfiles`,
         formData,
         {
           headers: {
@@ -81,7 +85,9 @@ const FileUploadComponent = () => {
         setPassword("");
       }
     } catch (error) {
-      console.error("Error uploading files", error);
+      if (error instanceof AxiosError) {
+        setError("Cannot upload files for some reason");
+      }
     } finally {
       setIsUploading(false);
       setProgress(0);
